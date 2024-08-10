@@ -3,6 +3,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import connect from "./db/dbConnection.js";
+import bcrypt from "bcrypt"
 
 dotenv.config();
 
@@ -31,18 +32,18 @@ connect().then(connection => {
 app.post("/register", async (req, res) => {
     try {
         const { name, gmail, password } = req.body;
-        
+
         if (!name || !gmail || !password) {
-            return res.status(400).json({ message: "Name, gmail, and password are required" });
+            return res.status(400).json({ message: "All fields are required" });
         }
 
-         await db.query("INSERT INTO User (name, gmail, password) VALUES (?, ?, ?)", [name, gmail, password]);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
+        await db.execute("INSERT INTO User (name, gmail, password) VALUES (?, ?, ?)", [name, gmail, hashedPassword]);
 
-        res.status(201).json({ message: "user register success" });
+        res.status(201).json({ message: "User registered successfully" });
     } catch (error) {
         res.status(500).json({ message: "Error registering user", error });
-        console.log(error);
     }
 });
 
@@ -52,28 +53,32 @@ app.post("/login", async (req, res) => {
         const { gmail, password } = req.body;
 
         if (!gmail || !password) {
-            return res.status(400).json({ message: "gmail and password are required" });
+            return res.status(400).json({ message: "Gmail and password are required" });
         }
 
         const [rows] = await db.execute("SELECT * FROM User WHERE gmail = ?", [gmail]);
         const user = rows[0];
 
         if (!user) {
+            console.log("No user found with that gmail");
             return res.status(401).json({ message: "Invalid gmail or password" });
         }
 
-        
-        if (user.password !== password) {
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordMatch) {
+            console.log("Password does not match");
             return res.status(401).json({ message: "Invalid gmail or password" });
         }
 
- 
         const [tasks] = await db.execute("SELECT * FROM Task WHERE id_user = ?", [user.id]);
-        res.status(200).json({ message: "user login success", user, tasks });
+        res.status(200).json({ message: "User login success", user, tasks });
     } catch (error) {
+        console.log("Error logging in: ", error);
         res.status(500).json({ message: "Error logging in", error });
     }
 });
+
 
 
 app.get("/getAllUsers", async (req, res) => {
