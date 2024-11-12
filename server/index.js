@@ -37,9 +37,8 @@ app.post("/register", async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
 
-        await db.execute("INSERT INTO User (name, gmail, password) VALUES (?, ?, ?)", [name, gmail, hashedPassword]);
+        await db.execute("INSERT INTO User (name, gmail, password) VALUES (?, ?, ?)", [name, gmail, password]);
 
         res.status(201).json({ message: "User registered successfully" });
     } catch (error) {
@@ -64,10 +63,8 @@ app.post("/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid gmail or password" });
         }
 
-        const isPasswordMatch = await bcrypt.compare(password, user.password);
-
-        if (!isPasswordMatch) {
-            console.log("Password does not match");
+        if (user.password != password) {
+            console.log("Incorrect password");
             return res.status(401).json({ message: "Invalid gmail or password" });
         }
 
