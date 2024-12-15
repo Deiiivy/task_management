@@ -1,0 +1,10 @@
+@import 'variables';
+
+.header {
+    background-color: rgba(24, 23, 23, 0.822);
+    text-align: center;
+
+    h1 {
+        color: $h1-color;
+    }
+}
